@@ -15,8 +15,14 @@ for arg in "$@"; do
   fi
 done
 
-# Add "test" folders and files to the ignore list if -t is not passed
-if [ "$INCLUDE_TEST" = false ]; then
+# If -t was passed, remove any patterns that match tests
+if [ "$INCLUDE_TEST" = true ]; then
+  for i in "${!IGNORE_FOLDERS[@]}"; do
+    if [[ "${IGNORE_FOLDERS[$i]}" == *"test"* ]]; then
+      unset 'IGNORE_FOLDERS[i]'
+    fi
+  done
+else
   IGNORE_FOLDERS+=("*test*")
 fi
 
