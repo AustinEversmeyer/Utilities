@@ -1,21 +1,50 @@
 #!/bin/bash
 
+# Default values
+INCLUDE_TEST=false
+TARGET_DIR="."    # default to current directory
+EXTRA_IGNORE=()
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -t)
+      INCLUDE_TEST=true
+      shift
+      ;;
+    -d)
+      if [[ -n "$2" ]]; then
+        TARGET_DIR="$2"
+        shift 2
+      else
+        echo "Error: -d requires a directory argument"
+        exit 1
+      fi
+      ;;
+    *)
+      EXTRA_IGNORE+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# Change directory if TARGET_DIR is specified and exists
+if [ "$TARGET_DIR" != "." ]; then
+  if [ -d "$TARGET_DIR" ]; then
+    cd "$TARGET_DIR" || { echo "Failed to change directory to $TARGET_DIR"; exit 1; }
+  else
+    echo "Directory '$TARGET_DIR' does not exist."
+    exit 1
+  fi
+fi
+
 # Set default ignored folders
 IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".git" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache")
 
-# Flag to include "test" files and folders
-INCLUDE_TEST=false
+# Append extra ignore folders from command line
+IGNORE_FOLDERS+=("${EXTRA_IGNORE[@]}")
 
-# Parse command line arguments
-for arg in "$@"; do
-  if [ "$arg" == "-t" ]; then
-    INCLUDE_TEST=true
-  else
-    IGNORE_FOLDERS+=("$arg")
-  fi
-done
-
-# If -t was passed, remove any patterns that match tests
+# If -t was passed, remove any patterns that match tests; otherwise, add a pattern to ignore tests
 if [ "$INCLUDE_TEST" = true ]; then
   for i in "${!IGNORE_FOLDERS[@]}"; do
     if [[ "${IGNORE_FOLDERS[$i]}" == *"test"* ]]; then
@@ -29,37 +58,25 @@ fi
 # ------------------------------------------------------------------------------
 # Build a single "prune" expression from IGNORE_FOLDERS
 #
-# We'll construct something like:
+# This constructs an expression like:
 #    \( ( -path "*/folder1" -o -path "*/folder2" -o ... ) -prune \) -o (the real work)
 # ------------------------------------------------------------------------------
 PRUNE_PATTERNS=()
 for folder in "${IGNORE_FOLDERS[@]}"; do
-  # Each folder becomes: -path "*/$folder" -o
   PRUNE_PATTERNS+=( -path "*/$folder" -o )
 done
 
-# Remove the trailing "-o" so we don't end with an OR at the end
+# Remove the trailing "-o"
 unset 'PRUNE_PATTERNS[${#PRUNE_PATTERNS[@]}-1]'
 
 # Output file
 OUTPUT_FILE="prompt_script.txt"
 
-# Write the project structure with files to the output file
 {
   echo "Project Folder Structure:"
   echo "========================"
 
-  # ----------------------------------------------------------------------------
-  # FOLDER TREE
-  #
-  # Explanation:
-  #   find . \
-  #     ( (PRUNE_PATTERNS) -prune )  -o  ( -type d -print )
-  #
-  # This means:
-  #   1. If the path matches any ignored folder, prune (skip) it.
-  #   2. Otherwise (-o), if it's a directory, print its path.
-  # ----------------------------------------------------------------------------
+  # FOLDER TREE: Skip ignored folders and print directories
   find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \( -type d -print \) \
     | sed -e 's|[^/]*/|  |g'
 
@@ -67,11 +84,7 @@ OUTPUT_FILE="prompt_script.txt"
   echo "Files with Contents:"
   echo "===================="
 
-  # ----------------------------------------------------------------------------
-  # FILES + CONTENT
-  #
-  # Similar logic, except we look for -type f with our desired -name patterns.
-  # ----------------------------------------------------------------------------
+  # FILES + CONTENT: Skip ignored folders and process selected file types
   find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
          \( -type f \
             \( -name "*.py" \
