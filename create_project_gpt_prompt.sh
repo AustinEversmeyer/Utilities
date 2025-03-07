@@ -134,6 +134,9 @@ fi
           fi
         done
   fi
+  
+  echo -e "\n\n----\n\n"
+  
 } > "$OUTPUT_FILE"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
