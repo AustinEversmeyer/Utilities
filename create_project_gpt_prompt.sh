@@ -2,7 +2,8 @@
 
 # Default values
 INCLUDE_TEST=false
-TARGET_DIR="."    # default to current directory
+ONLY_CMAKE=false
+TARGET_DIR="."
 EXTRA_IGNORE=()
 
 # Parse command line arguments
@@ -20,6 +21,10 @@ while [[ "$#" -gt 0 ]]; do
         echo "Error: -d requires a directory argument"
         exit 1
       fi
+      ;;
+    -c)
+      ONLY_CMAKE=true
+      shift
       ;;
     *)
       EXTRA_IGNORE+=("$1")
@@ -57,64 +62,78 @@ fi
 
 # ------------------------------------------------------------------------------
 # Build a single "prune" expression from IGNORE_FOLDERS
-#
-# This constructs an expression like:
-#    \( ( -path "*/folder1" -o -path "*/folder2" -o ... ) -prune \) -o (the real work)
 # ------------------------------------------------------------------------------
 PRUNE_PATTERNS=()
 for folder in "${IGNORE_FOLDERS[@]}"; do
   PRUNE_PATTERNS+=( -path "*/$folder" -o )
 done
-
-# Remove the trailing "-o"
 unset 'PRUNE_PATTERNS[${#PRUNE_PATTERNS[@]}-1]'
 
-# Output file
-OUTPUT_FILE="prompt_script.txt"
+# Set output file based on mode
+if [ "$ONLY_CMAKE" = true ]; then
+  OUTPUT_FILE="cmake_files_structure.txt"
+else
+  OUTPUT_FILE="prompt_script.txt"
+fi
 
 {
-  echo "Project Folder Structure:"
-  echo "========================"
+  if [ "$ONLY_CMAKE" = true ]; then
+    echo "CMake Folder Structure:"
+    echo "======================="
+  else
+    echo "Project Folder Structure:"
+    echo "========================"
+  fi
 
   # FOLDER TREE: Skip ignored folders and print directories
   find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \( -type d -print \) \
     | sed -e 's|[^/]*/|  |g'
 
   echo
-  echo "Files with Contents:"
-  echo "===================="
 
-  # FILES + CONTENT: Skip ignored folders and process selected file types
-  find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-         \( -type f \
-            \( -name "*.py" \
-            -o -name "*.h" \
-            -o -name "*.hpp" \
-            -o -name "*.c" \
-            -o -name "*.cpp" \
-            -o -name "*.yaml" \
-            -o -name "*.yml" \
-            -o -name "*.json" \
-            -o -name "*.toml" \
-            -o -name "Dockerfile*" \
-            -o -name "*.sh" \
-            -o -name "*.go" \
-            -o -name "Makefile" \
-            -o -name "*.mk" \
-            -o -name "*.env" \
-            -o -name "*.bat" \) \
-         -print \) \
-    | while read -r file; do
-
-        if [ -f "$file" ]; then
-          echo
-          echo "==== $file ===="
-          echo
-          cat "$file"
-        fi
-      done
-
+  if [ "$ONLY_CMAKE" = true ]; then
+    echo "CMake Files with Contents:"
+    echo "=========================="
+    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+           \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -print \) \
+      | while read -r file; do
+          if [ -f "$file" ]; then
+            echo
+            echo "==== $file ===="
+            echo
+            cat "$file"
+          fi
+        done
+  else
+    echo "Files with Contents:"
+    echo "===================="
+    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+           \( -type f \
+              \( -name "*.py" \
+              -o -name "*.h" \
+              -o -name "*.hpp" \
+              -o -name "*.c" \
+              -o -name "*.cpp" \
+              -o -name "*.yaml" \
+              -o -name "*.yml" \
+              -o -name "*.json" \
+              -o -name "*.toml" \
+              -o -name "Dockerfile*" \
+              -o -name "*.sh" \
+              -o -name "*.go" \
+              -o -name "Makefile" \
+              -o -name "*.mk" \
+              -o -name "*.env" \
+              -o -name "*.bat" \) -print \) \
+      | while read -r file; do
+          if [ -f "$file" ]; then
+            echo
+            echo "==== $file ===="
+            echo
+            cat "$file"
+          fi
+        done
+  fi
 } > "$OUTPUT_FILE"
 
-# Notify user of completion
-echo "Project structure and file contents written to $OUTPUT_FILE"
+echo "Structure and file contents written to $OUTPUT_FILE"
