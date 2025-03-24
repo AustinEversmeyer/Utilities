@@ -3,6 +3,7 @@
 # Default values
 INCLUDE_TEST=false
 ONLY_CMAKE=false
+MATCH_EXPRESSION=""
 TARGET_DIR="."
 EXTRA_IGNORE=()
 
@@ -26,6 +27,15 @@ while [[ "$#" -gt 0 ]]; do
       ONLY_CMAKE=true
       shift
       ;;
+    -m)
+      if [[ -n "$2" ]]; then
+        MATCH_EXPRESSION="$2"
+        shift 2
+      else
+        echo "Error: -m requires a pattern argument"
+        exit 1
+      fi
+      ;;
     *)
       EXTRA_IGNORE+=("$1")
       shift
@@ -43,13 +53,9 @@ if [ "$TARGET_DIR" != "." ]; then
   fi
 fi
 
-# Set default ignored folders
 IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".git" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache")
-
-# Append extra ignore folders from command line
 IGNORE_FOLDERS+=("${EXTRA_IGNORE[@]}")
 
-# If -t was passed, remove any patterns that match tests; otherwise, add a pattern to ignore tests
 if [ "$INCLUDE_TEST" = true ]; then
   for i in "${!IGNORE_FOLDERS[@]}"; do
     if [[ "${IGNORE_FOLDERS[$i]}" == *"test"* ]]; then
@@ -60,16 +66,12 @@ else
   IGNORE_FOLDERS+=("*test*")
 fi
 
-# ------------------------------------------------------------------------------
-# Build a single "prune" expression from IGNORE_FOLDERS
-# ------------------------------------------------------------------------------
 PRUNE_PATTERNS=()
 for folder in "${IGNORE_FOLDERS[@]}"; do
   PRUNE_PATTERNS+=( -path "*/$folder" -o )
 done
 unset 'PRUNE_PATTERNS[${#PRUNE_PATTERNS[@]}-1]'
 
-# Set output file based on mode
 if [ "$ONLY_CMAKE" = true ]; then
   OUTPUT_FILE="cmake_files_structure.txt"
 else
@@ -85,17 +87,17 @@ fi
     echo "========================"
   fi
 
-  # FOLDER TREE: Skip ignored folders and print directories
   find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \( -type d -print \) \
     | sed -e 's|[^/]*/|  |g'
 
   echo
 
-  if [ "$ONLY_CMAKE" = true ]; then
-    echo "CMake Files with Contents:"
-    echo "=========================="
+  echo "Files with Contents:"
+  echo "===================="
+
+  if [ -n "$MATCH_EXPRESSION" ]; then
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-           \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -print \) \
+      \( -type f -iname "$MATCH_EXPRESSION" -print \) \
       | while read -r file; do
           if [ -f "$file" ]; then
             echo
@@ -105,38 +107,48 @@ fi
           fi
         done
   else
-    echo "Files with Contents:"
-    echo "===================="
-    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-           \( -type f \
-              \( -name "*.py" \
-              -o -name "*.h" \
-              -o -name "*.hpp" \
-              -o -name "*.c" \
-              -o -name "*.cpp" \
-              -o -name "*.yaml" \
-              -o -name "*.yml" \
-              -o -name "*.json" \
-              -o -name "*.toml" \
-              -o -name "Dockerfile*" \
-              -o -name "*.sh" \
-              -o -name "*.go" \
-              -o -name "Makefile" \
-              -o -name "*.mk" \
-              -o -name "*.env" \
-              -o -name "*.bat" \) -print \) \
-      | while read -r file; do
-          if [ -f "$file" ]; then
-            echo
-            echo "==== $file ===="
-            echo
-            cat "$file"
-          fi
-        done
+    if [ "$ONLY_CMAKE" = true ]; then
+      find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+        \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -print \) \
+        | while read -r file; do
+            if [ -f "$file" ]; then
+              echo
+              echo "==== $file ===="
+              echo
+              cat "$file"
+            fi
+          done
+    else
+      find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+        \( -type f \
+          \( -name "*.py" \
+             -o -name "*.h" \
+             -o -name "*.hpp" \
+             -o -name "*.c" \
+             -o -name "*.cpp" \
+             -o -name "*.yaml" \
+             -o -name "*.yml" \
+             -o -name "*.json" \
+             -o -name "*.toml" \
+             -o -name "Dockerfile*" \
+             -o -name "*.sh" \
+             -o -name "*.go" \
+             -o -name "Makefile" \
+             -o -name "*.mk" \
+             -o -name "*.env" \
+             -o -name "*.bat" \) -print \) \
+        | while read -r file; do
+            if [ -f "$file" ]; then
+              echo
+              echo "==== $file ===="
+              echo
+              cat "$file"
+            fi
+          done
+    fi
   fi
-  
-  echo -e "\n\n----\n\n"
-  
+
+  echo -e "\n\n----\n"
 } > "$OUTPUT_FILE"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
