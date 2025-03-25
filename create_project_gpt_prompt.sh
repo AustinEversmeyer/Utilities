@@ -6,8 +6,27 @@ MATCH_EXPRESSION=""
 TARGET_DIR="."
 EXTRA_IGNORE=()
 
+usage() {
+  echo "Usage: $0 [options]"
+  echo
+  echo "Options:"
+  echo "  -h              Display this help message and exit."
+  echo "  -t              Include test folders (default excludes folders with 'test')."
+  echo "  -d <directory>  Specify target directory (default is current directory)."
+  echo "  -c              Only process CMake files (CMakeLists.txt or *.cmake)."
+  echo "  -m <pattern>    Specify a filename pattern to match files."
+  echo "  Extra arguments are added to the ignore list."
+  echo
+  echo "This script outputs a structured file list and file contents sorted by modification time,"
+  echo "with the oldest files at the top and the most recent ones at the bottom."
+}
+
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
+    -h)
+      usage
+      exit 0
+      ;;
     -t)
       INCLUDE_TEST=true
       shift
@@ -116,22 +135,23 @@ fi
           done
     else
       find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-        \( -type f \( -name "*.py" \
-                     -o -name "*.h" \
-                     -o -name "*.hpp" \
-                     -o -name "*.c" \
-                     -o -name "*.cpp" \
-                     -o -name "*.yaml" \
-                     -o -name "*.yml" \
-                     -o -name "*.json" \
-                     -o -name "*.toml" \
-                     -o -name "Dockerfile*" \
-                     -o -name "*.sh" \
-                     -o -name "*.go" \
-                     -o -name "Makefile" \
-                     -o -name "*.mk" \
-                     -o -name "*.env" \
-                     -o -name "*.bat" \) -printf '%T@ %p\n' \) \
+        \( -type f \
+          \( -name "*.py" \
+             -o -name "*.h" \
+             -o -name "*.hpp" \
+             -o -name "*.c" \
+             -o -name "*.cpp" \
+             -o -name "*.yaml" \
+             -o -name "*.yml" \
+             -o -name "*.json" \
+             -o -name "*.toml" \
+             -o -name "Dockerfile*" \
+             -o -name "*.sh" \
+             -o -name "*.go" \
+             -o -name "Makefile" \
+             -o -name "*.mk" \
+             -o -name "*.env" \
+             -o -name "*.bat" \) -printf '%T@ %p\n' \) \
         | sort -n | cut -d' ' -f2- | while read -r file; do
             if [ -f "$file" ]; then
               echo
