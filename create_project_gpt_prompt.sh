@@ -1,13 +1,11 @@
 #!/bin/bash
 
-# Default values
 INCLUDE_TEST=false
 ONLY_CMAKE=false
 MATCH_EXPRESSION=""
 TARGET_DIR="."
 EXTRA_IGNORE=()
 
-# Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     -t)
@@ -43,7 +41,6 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-# Change directory if TARGET_DIR is specified and exists
 if [ "$TARGET_DIR" != "." ]; then
   if [ -d "$TARGET_DIR" ]; then
     cd "$TARGET_DIR" || { echo "Failed to change directory to $TARGET_DIR"; exit 1; }
@@ -91,14 +88,13 @@ fi
     | sed -e 's|[^/]*/|  |g'
 
   echo
-
   echo "Files with Contents:"
   echo "===================="
 
   if [ -n "$MATCH_EXPRESSION" ]; then
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-      \( -type f -iname "$MATCH_EXPRESSION" -print \) \
-      | while read -r file; do
+      \( -type f -iname "$MATCH_EXPRESSION" -printf '%T@ %p\n' \) \
+      | sort -n | cut -d' ' -f2- | while read -r file; do
           if [ -f "$file" ]; then
             echo
             echo "==== $file ===="
@@ -109,8 +105,8 @@ fi
   else
     if [ "$ONLY_CMAKE" = true ]; then
       find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-        \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -print \) \
-        | while read -r file; do
+        \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -printf '%T@ %p\n' \) \
+        | sort -n | cut -d' ' -f2- | while read -r file; do
             if [ -f "$file" ]; then
               echo
               echo "==== $file ===="
@@ -120,24 +116,23 @@ fi
           done
     else
       find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-        \( -type f \
-          \( -name "*.py" \
-             -o -name "*.h" \
-             -o -name "*.hpp" \
-             -o -name "*.c" \
-             -o -name "*.cpp" \
-             -o -name "*.yaml" \
-             -o -name "*.yml" \
-             -o -name "*.json" \
-             -o -name "*.toml" \
-             -o -name "Dockerfile*" \
-             -o -name "*.sh" \
-             -o -name "*.go" \
-             -o -name "Makefile" \
-             -o -name "*.mk" \
-             -o -name "*.env" \
-             -o -name "*.bat" \) -print \) \
-        | while read -r file; do
+        \( -type f \( -name "*.py" \
+                     -o -name "*.h" \
+                     -o -name "*.hpp" \
+                     -o -name "*.c" \
+                     -o -name "*.cpp" \
+                     -o -name "*.yaml" \
+                     -o -name "*.yml" \
+                     -o -name "*.json" \
+                     -o -name "*.toml" \
+                     -o -name "Dockerfile*" \
+                     -o -name "*.sh" \
+                     -o -name "*.go" \
+                     -o -name "Makefile" \
+                     -o -name "*.mk" \
+                     -o -name "*.env" \
+                     -o -name "*.bat" \) -printf '%T@ %p\n' \) \
+        | sort -n | cut -d' ' -f2- | while read -r file; do
             if [ -f "$file" ]; then
               echo
               echo "==== $file ===="
