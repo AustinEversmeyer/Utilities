@@ -163,7 +163,15 @@ fi
     fi
   fi
 
-  echo -e "\n\n----\n"
+  echo -e "\n\n---\n"
 } > "$OUTPUT_FILE"
+
+# Append the instruction block to the output file with proper spacing
+{
+  echo -e "\n"
+  echo "---"
+  echo ""
+  echo "Now, update or create all relevant files according to the instructions provided. Display the complete content of all files in the codebase, including unchanged files. Ensure all updates adhere to production-level quality, clean code principles, and good design. Minimize unnecessary stylistic changes (such as whitespace, indentation, and line endings) in untouched sections to clearly highlight actual changes during git comparisons."
+} >> "$OUTPUT_FILE"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
