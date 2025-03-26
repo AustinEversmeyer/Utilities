@@ -94,6 +94,52 @@ else
   OUTPUT_FILE="prompt_script.txt"
 fi
 
+FILE_LIST=$(mktemp)
+
+if [ -n "$MATCH_EXPRESSION" ]; then
+  find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+    \( -type f -iname "$MATCH_EXPRESSION" -printf '%T@ %p\n' \) \
+    | sort -n | cut -d' ' -f2- > "$FILE_LIST"
+else
+  if [ "$ONLY_CMAKE" = true ]; then
+    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+      \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -printf '%T@ %p\n' \) \
+      | sort -n | cut -d' ' -f2- > "$FILE_LIST"
+  else
+    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+      \( -type f \
+         \( -name "*.py" \
+            -o -name "*.h" \
+            -o -name "*.hpp" \
+            -o -name "*.c" \
+            -o -name "*.cpp" \
+            -o -name "*.yaml" \
+            -o -name "*.yml" \
+            -o -name "*.json" \
+            -o -name "*.toml" \
+            -o -name "Dockerfile*" \
+            -o -name "*.sh" \
+            -o -name "*.go" \
+            -o -name "Makefile" \
+            -o -name "*.mk" \
+            -o -name "*.env" \
+            -o -name "*.bat" \) -printf '%T@ %p\n' \) \
+      | sort -n | cut -d' ' -f2- > "$FILE_LIST"
+  fi
+fi
+
+TEMP_DIRS=$(mktemp)
+while IFS= read -r file; do
+  dir=$(dirname "$file")
+  while true; do
+    echo "$dir" >> "$TEMP_DIRS"
+    if [ "$dir" = "." ]; then
+      break
+    fi
+    dir=$(dirname "$dir")
+  done
+done < "$FILE_LIST"
+
 {
   if [ "$ONLY_CMAKE" = true ]; then
     echo "CMake Folder Structure:"
@@ -103,70 +149,24 @@ fi
     echo "========================"
   fi
 
-  find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \( -type d -print \) \
-    | sed -e 's|[^/]*/|  |g'
+  sort -u "$TEMP_DIRS" | sort | sed -e 's|^\./||' -e 's|[^/]*/|  |g'
 
   echo
   echo "Files with Contents:"
   echo "===================="
 
-  if [ -n "$MATCH_EXPRESSION" ]; then
-    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-      \( -type f -iname "$MATCH_EXPRESSION" -printf '%T@ %p\n' \) \
-      | sort -n | cut -d' ' -f2- | while read -r file; do
-          if [ -f "$file" ]; then
-            echo
-            echo "==== $file ===="
-            echo
-            cat "$file"
-          fi
-        done
-  else
-    if [ "$ONLY_CMAKE" = true ]; then
-      find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-        \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -printf '%T@ %p\n' \) \
-        | sort -n | cut -d' ' -f2- | while read -r file; do
-            if [ -f "$file" ]; then
-              echo
-              echo "==== $file ===="
-              echo
-              cat "$file"
-            fi
-          done
-    else
-      find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-        \( -type f \
-          \( -name "*.py" \
-             -o -name "*.h" \
-             -o -name "*.hpp" \
-             -o -name "*.c" \
-             -o -name "*.cpp" \
-             -o -name "*.yaml" \
-             -o -name "*.yml" \
-             -o -name "*.json" \
-             -o -name "*.toml" \
-             -o -name "Dockerfile*" \
-             -o -name "*.sh" \
-             -o -name "*.go" \
-             -o -name "Makefile" \
-             -o -name "*.mk" \
-             -o -name "*.env" \
-             -o -name "*.bat" \) -printf '%T@ %p\n' \) \
-        | sort -n | cut -d' ' -f2- | while read -r file; do
-            if [ -f "$file" ]; then
-              echo
-              echo "==== $file ===="
-              echo
-              cat "$file"
-            fi
-          done
+  while IFS= read -r file; do
+    if [ -f "$file" ]; then
+      echo
+      echo "==== $file ===="
+      echo
+      cat "$file"
     fi
-  fi
+  done < "$FILE_LIST"
 
   echo -e "\n\n---\n"
 } > "$OUTPUT_FILE"
 
-# Append the instruction block to the output file with proper spacing
 {
   echo -e "\n"
   echo "---"
@@ -177,6 +177,9 @@ fi
   echo "Minimize unnecessary stylistic changes (such as whitespace, indentation, and line endings) "
   echo "in untouched sections to clearly highlight actual changes during git comparisons."
   echo "Avoid adding inline comments unless strictly necessary or asked for."
+  echo "Specify which files have changed and which files remain unchanged next to each file name."
 } >> "$OUTPUT_FILE"
+
+rm "$FILE_LIST" "$TEMP_DIRS"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
