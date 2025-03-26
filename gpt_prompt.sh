@@ -15,6 +15,7 @@ usage() {
   echo "  -d <directory>  Specify target directory (default is current directory)."
   echo "  -c              Only process CMake files (CMakeLists.txt or *.cmake)."
   echo "  -m <pattern>    Specify a filename pattern to match files."
+  echo "  -i <pattern>    Add a filename pattern to ignore list."
   echo "  Extra arguments are added to the ignore list."
   echo
   echo "This script outputs a structured file list and file contents sorted by modification time,"
@@ -50,6 +51,15 @@ while [[ "$#" -gt 0 ]]; do
         shift 2
       else
         echo "Error: -m requires a pattern argument"
+        exit 1
+      fi
+      ;;
+    -i)
+      if [[ -n "$2" ]]; then
+        EXTRA_IGNORE+=("$2")
+        shift 2
+      else
+        echo "Error: -i requires a pattern argument"
         exit 1
       fi
       ;;
