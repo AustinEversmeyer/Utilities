@@ -171,7 +171,12 @@ fi
   echo -e "\n"
   echo "---"
   echo ""
-  echo "Now, update or create all relevant files according to the instructions provided. Display the complete content of all files in the codebase, including unchanged files. Ensure all updates adhere to production-level quality, clean code principles, and good design. Minimize unnecessary stylistic changes (such as whitespace, indentation, and line endings) in untouched sections to clearly highlight actual changes during git comparisons."
+  echo "Now, update or create all relevant files according to the instructions provided."
+  echo "Display the complete content of all files in the codebase, including unchanged files."
+  echo "Ensure all updates adhere to production-level quality, clean code principles, and good design."
+  echo "Minimize unnecessary stylistic changes (such as whitespace, indentation, and line endings) "
+  echo "in untouched sections to clearly highlight actual changes during git comparisons."
+  echo "Avoid adding inline comments unless strictly necessary or asked for."
 } >> "$OUTPUT_FILE"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
