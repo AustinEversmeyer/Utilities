@@ -2,6 +2,7 @@
 
 INCLUDE_TEST=false
 ONLY_CMAKE=false
+ALL_FILES=false
 MATCH_EXPRESSION=""
 TARGET_DIR="."
 EXTRA_IGNORE=()
@@ -16,6 +17,7 @@ usage() {
   echo "  -c              Only process CMake files (CMakeLists.txt or *.cmake)."
   echo "  -m <pattern>    Specify a filename pattern to match files."
   echo "  -i <pattern>    Add a filename pattern to ignore list."
+  echo "  -a              Include all files (ignore all patterns except 'deps' folders)."
   echo "  Extra arguments are added to the ignore list."
   echo
   echo "This script outputs a structured file list and file contents sorted by modification time,"
@@ -63,6 +65,10 @@ while [[ "$#" -gt 0 ]]; do
         exit 1
       fi
       ;;
+    -a)
+      ALL_FILES=true
+      shift
+      ;;
     *)
       EXTRA_IGNORE+=("$1")
       shift
@@ -79,17 +85,21 @@ if [ "$TARGET_DIR" != "." ]; then
   fi
 fi
 
-IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".git" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache")
-IGNORE_FOLDERS+=("${EXTRA_IGNORE[@]}")
-
-if [ "$INCLUDE_TEST" = true ]; then
-  for i in "${!IGNORE_FOLDERS[@]}"; do
-    if [[ "${IGNORE_FOLDERS[$i]}" == *"test"* ]]; then
-      unset 'IGNORE_FOLDERS[i]'
-    fi
-  done
+if [ "$ALL_FILES" = true ]; then
+  IGNORE_FOLDERS=("deps")
 else
-  IGNORE_FOLDERS+=("*test*")
+  IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".git" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache")
+  IGNORE_FOLDERS+=("${EXTRA_IGNORE[@]}")
+
+  if [ "$INCLUDE_TEST" = true ]; then
+    for i in "${!IGNORE_FOLDERS[@]}"; do
+      if [[ "${IGNORE_FOLDERS[$i]}" == *"test"* ]]; then
+        unset 'IGNORE_FOLDERS[i]'
+      fi
+    done
+  else
+    IGNORE_FOLDERS+=("*test*")
+  fi
 fi
 
 PRUNE_PATTERNS=()
@@ -143,9 +153,7 @@ while IFS= read -r file; do
   dir=$(dirname "$file")
   while true; do
     echo "$dir" >> "$TEMP_DIRS"
-    if [ "$dir" = "." ]; then
-      break
-    fi
+    [ "$dir" = "." ] && break
     dir=$(dirname "$dir")
   done
 done < "$FILE_LIST"
