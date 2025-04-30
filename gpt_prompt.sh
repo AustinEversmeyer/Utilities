@@ -125,6 +125,10 @@ else
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
       \( -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -printf '%T@ %p\n' \) \
       | sort -n | cut -d' ' -f2- > "$FILE_LIST"
+  elif [ "$ALL_FILES" = true ]; then
+    find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
+      \( -type f -printf '%T@ %p\n' \) \
+      | sort -n | cut -d' ' -f2- > "$FILE_LIST"
   else
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
       \( -type f \
