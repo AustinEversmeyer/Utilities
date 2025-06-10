@@ -189,20 +189,6 @@ done < "$FILE_LIST"
   echo -e "\n\n---\n"
 } > "$OUTPUT_FILE"
 
-{
-  echo -e "\n"
-  echo "---"
-  echo ""
-  echo "Now, update or create all relevant files according to the instructions provided."
-  echo "Display the complete content of all modified files in the codebase."
-  echo "Ensure all updates adhere to production-level quality, clean code principles, and good design."
-  echo "Minimize unnecessary stylistic changes (such as whitespace, indentation, and line endings) "
-  echo "in untouched sections to clearly highlight actual changes during git comparisons."
-  echo "Avoid adding inline comments unless strictly necessary or asked for."
-  echo "At the beginning of your response, give a bullet list of unchanged files and then after that "
-  echo "list each of the modified files in completion as described above."
-} >> "$OUTPUT_FILE"
-
 rm "$FILE_LIST" "$TEMP_DIRS"
 
 echo "Structure and file contents written to $OUTPUT_FILE"
