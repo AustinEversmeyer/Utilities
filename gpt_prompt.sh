@@ -69,10 +69,13 @@ if [ "$TARGET_DIR" != "." ]; then
   fi
 fi
 
+# Always ignore .git
+BASE_IGNORES=(".git")
+
 if [ "$ALL_FILES" = true ]; then
-  IGNORE_FOLDERS=("deps")
+  IGNORE_FOLDERS=("deps" "${BASE_IGNORES[@]}")
 else
-  IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".git" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache")
+  IGNORE_FOLDERS=("build" "install" "cmake" "deps" ".vscode" "tests" ".venv_poetry" ".venv" ".cache_poetry" ".cache_pip" "__pycache__" ".cache" "${BASE_IGNORES[@]}")
   IGNORE_FOLDERS+=("${EXTRA_IGNORE[@]}")
   if [ "$INCLUDE_TEST" = true ]; then
     for i in "${!IGNORE_FOLDERS[@]}"; do
@@ -112,7 +115,7 @@ if [ -n "$MATCH_EXPRESSION" ]; then
 else
   if [ "$ONLY_CMAKE" = true ]; then
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-      -type f \( -name "CMakeLists.txt" -o -name "*.cmake" \) -print \
+      -type f \( -iname "CMakeLists.txt" -o -iname "*.cmake" \) -print \
       | collect_files | sort -n | cut -d' ' -f2- > "$FILE_LIST"
   elif [ "$ALL_FILES" = true ]; then
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
@@ -120,11 +123,11 @@ else
       | collect_files | sort -n | cut -d' ' -f2- > "$FILE_LIST"
   else
     find . \( \( "${PRUNE_PATTERNS[@]}" \) -prune \) -o \
-      -type f \( -name "*.py" -o -name "*.h" -o -name "*.hpp" -o -name "*.c" \
-                -o -name "*.cpp" -o -name "*.yaml" -o -name "*.yml" \
-                -o -name "*.json" -o -name "*.toml" -o -name "Dockerfile*" \
-                -o -name "*.sh" -o -name "*.go" -o -name "Makefile" \
-                -o -name "*.mk" -o -name "*.env" -o -name "*.bat" \) -print \
+      -type f \( -iname "*.py" -o -iname "*.h" -o -iname "*.hpp" -o -iname "*.c" \
+                -o -iname "*.cpp" -o -iname "*.yaml" -o -iname "*.yml" \
+                -o -iname "*.json" -o -iname "*.toml" -o -iname "Dockerfile*" \
+                -o -iname "*.sh" -o -iname "*.go" -o -iname "Makefile" \
+                -o -iname "*.mk" -o -iname "*.env" -o -iname "*.bat" \) -print \
       | collect_files | sort -n | cut -d' ' -f2- > "$FILE_LIST"
   fi
 fi
